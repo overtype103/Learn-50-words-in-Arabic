@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{min-height:100vh;color:#f5f5f5;background:#050816;overflow-y:auto;overflow-x:hidden;position:relative}
+    body::before{content:"";position:fixed;inset:0;background-image:url("background.png");background-size:cover;background-position:center;opacity:1;z-index:-2;animation:bgMove 40s ease-in-out infinite alternate;transform-origin:center}
+    @keyframes bgMove{0%{transform:scale(1) translate3d(0,0,0)}50%{transform:scale(1.1) translate3d(-10px,-10px,0)}100%{transform:scale(1.2) translate3d(10px,10px,0)}}
+    body::after{content:"";position:fixed;inset:0;background:radial-gradient(circle at top,rgba(255,255,255,0.08),transparent 55%),linear-gradient(to bottom,rgba(0,0,0,0.8),rgba(0,0,0,0.95));z-index:-1}
+
+    .app-container{max-width:900px;margin:40px auto;padding:24px;border-radius:18px;background:rgba(10,10,25,0.9);box-shadow:0 24px 60px rgba(0,0,0,0.7),0 0 0 1px rgba(255,255,255,0.04);backdrop-filter:blur(18px)}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+    .title{font-size:1.4rem;font-weight:600;letter-spacing:.04em}
+    .subtitle{font-size:.9rem;color:#b0b6ff;opacity:.9}
+    .pill{padding:6px 12px;border-radius:999px;font-size:.8rem;background:linear-gradient(135deg,#6366f1,#22c55e);color:#0b1020;font-weight:600;box-shadow:0 0 0 1px rgba(255,255,255,0.2)}
+    .progress-bar{width:100%;height:8px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden;margin-bottom:18px}
+    .progress-fill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#22c55e,#a3e635);transition:width .25s ease-out}
+
+    .quiz-card{border-radius:16px;padding:20px 18px;background:radial-gradient(circle at top left,rgba(99,102,241,0.18),transparent 55%),radial-gradient(circle at bottom right,rgba(34,197,94,0.18),transparent 55%),rgba(15,23,42,0.95);border:1px solid rgba(148,163,184,0.35);position:relative;overflow:hidden;}
+    .question-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:.85rem;color:#cbd5f5;opacity:.9}
+    .question-index{font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.75rem;color:#a5b4fc}
+    .question-type{font-size:1.8rem;padding:4px 10px;border-radius:999px;background:rgba(15,118,110,0.2);color:#5eead4;border:1px solid rgba(45,212,191,0.4)}
+
+    .prompt-label{font-size:.8rem;text-transform:uppercase;letter-spacing:.12em;color:#9ca3af;margin-bottom:4px}
+    .prompt-text{font-size:2.4rem;font-weight:500;color:#e5e7eb;margin-bottom:16px}
+    .prompt-helper{
+  font-size:1.15rem;
+  font-weight:500;
+  color:#dbe0ff;
+  margin-bottom:18px;
+  padding-left:12px;
+  border-left:3px solid rgba(99,102,241,0.6)
+}
+
+    .options{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:18px}
+    .option-btn{width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,0.5);background:rgba(15,23,42,0.9);color:#e5e7eb;font-size:.95rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;transition:all .18s ease-out}
+    .option-btn span.label{font-weight:500}
+    .option-btn:hover{border-color:#6366f1;background:radial-gradient(circle at top left,rgba(99,102,241,0.25),transparent 60%),rgba(15,23,42,0.95);transform:translateY(-1px);box-shadow:0 10px 25px rgba(15,23,42,0.7)}
+    .option-btn.selected{border-color:#6366f1;background:linear-gradient(135deg,rgba(79,70,229,0.9),rgba(37,99,235,0.9));box-shadow:0 12px 30px rgba(79,70,229,0.7)}
+    .option-btn.correct{border-color:#22c55e;background:linear-gradient(135deg,rgba(22,163,74,0.9),rgba(34,197,94,0.9));box-shadow:0 12px 30px rgba(22,163,74,0.7)}
+    .option-btn.incorrect{border-color:#ef4444;background:linear-gradient(135deg,rgba(185,28,28,0.9),rgba(239,68,68,0.9));box-shadow:0 12px 30px rgba(185,28,28,0.7)}
+
+    .feedback{min-height:20px;font-size:.9rem;margin-bottom:10px}
+    .feedback.correct{color:#4ade80}
+    .feedback.incorrect{color:#f97373}
+
+    .nav-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px}
+    .nav-buttons{display:flex;gap:8px}
+    button.nav-btn,button.secondary-btn{border-radius:999px;border:none;padding:8px 14px;font-size:.9rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .18s ease-out;white-space:nowrap}
+    button.nav-btn{background:rgba(15,23,42,0.9);color:#e5e7eb;border:1px solid rgba(148,163,184,0.6)}
+    button.nav-btn:disabled{opacity:.4;cursor:default;transform:none;box-shadow:none}
+    button.nav-btn:not(:disabled):hover{border-color:#6366f1;background:rgba(30,64,175,0.9);box-shadow:0 8px 20px rgba(30,64,175,0.7);transform:translateY(-1px)}
+    button.secondary-btn{background:rgba(15,23,42,0.9);color:#e5e7eb;border:1px solid rgba(148,163,184,0.6)}
+    button.secondary-btn:hover{border-color:#f97316;background:rgba(30,64,175,0.9);box-shadow:0 8px 20px rgba(30,64,175,0.7);transform:translateY(-1px)}
+
+    .progress-text{font-size:.85rem;color:#9ca3af}
+    .score-pill{font-size:.85rem;padding:4px 10px;border-radius:999px;background:rgba(22,163,74,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.5)}
+
+    .recap{margin-top:18px;padding-top:14px;border-top:1px solid rgba(148,163,184,0.4);max-height:260px;overflow-y:auto;scrollbar-width:thin}
+    .recap h3{font-size:.95rem;margin-bottom:8px;color:#e5e7eb}
+    .recap-item{padding:8px 0;border-bottom:1px dashed rgba(148,163,184,0.4);font-size:.85rem}
+    .recap-item:last-child{border-bottom:none}
+    .recap-item .q-label{font-weight:600;color:#c4b5fd;margin-bottom:2px}
+    .recap-item .prompt{color:#9ca3af;margin-bottom:2px}
+    .recap-item .answer-line{display:flex;flex-wrap:wrap;gap:6px}
+    .tag-correct{color:#4ade80}
+    .tag-incorrect{color:#f97373}
+    .tag-neutral{color:#e5e7eb}
+
+    @media(min-width:640px){.options{grid-template-columns:1fr 1fr 1fr}}
+  
+/* ===== Adaptive option layouts (v03) ===== */
+.layout-1{grid-template-columns:1fr}
+.layout-2{grid-template-columns:1fr 1fr}
+.layout-3{grid-template-columns:repeat(3,1fr)}
+.layout-4{grid-template-columns:repeat(2,1fr)}
+
+.layout-5{grid-template-columns:repeat(6,1fr)}
+.layout-5 .option-btn:nth-child(-n+3){grid-column:span 2}
+.layout-5 .option-btn:nth-child(n+4){grid-column:span 3}
+
+.layout-6{grid-template-columns:repeat(3,1fr)}
+
+.layout-7{grid-template-columns:repeat(6,1fr)}
+.layout-7 .option-btn:nth-child(-n+3){grid-column:span 2}
+.layout-7 .option-btn:nth-child(n+4){grid-column:span 3}
+
+.layout-8{grid-template-columns:repeat(6,1fr)}
+.layout-8 .option-btn:nth-child(-n+6){grid-column:span 2}
+.layout-8 .option-btn:nth-child(n+7){grid-column:span 3}
+
+@media(max-width:640px){
+  .options{grid-template-columns:1fr}
+}
+
+
+/* ===== Header clamp (prevent long title overlapping the pill) ===== */
+header > div:first-child{max-width:calc(100% - 220px);}
+header .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+header .subtitle{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;}
+
+
+/* ===== Menu overlay ===== */
+.quiz-card.menu-open{height:240px;max-height:340px;}
+@media(max-width:640px){.quiz-card.menu-open{height:280px;max-height:340px;}}
+.menu-overlay{position:absolute;inset:0;border-radius:16px;z-index:50;overflow:hidden;background-image:url("Box Background.png");background-size:cover;background-position:center;background-repeat:no-repeat;background-color:rgba(15,23,42,0.55);background-blend-mode:overlay;border:1px solid rgba(148,163,184,0.35);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06);padding:18px 18px;display:flex;flex-direction:column;justify-content:space-between;}
+/* Fallback ONLY when Box Background.png is missing */
+.menu-overlay.fallback{background-image:none;background-blend-mode:normal;background:linear-gradient(180deg, rgba(10,10,25,0.92), rgba(10,10,25,0.82));}
+.menu-actions{display:flex;justify-content:flex-start;}
+#menuInfo,#menuSubtitle,#menuTitle{white-space:pre-line;}
+/* ===== Menu text styles ===== */
+.menu-head{display:flex;flex-direction:column;gap:10px;}
+#menuWelcome{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(176,182,255,0.75);}
+#menuTitle{font-size:clamp(1.35rem, 2.8vw, 2.15rem);line-height:1.12;padding-bottom:4px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+#menuSubtitle{font-size:1.12rem;line-height:1.28;color:#b0b6ff;opacity:.97;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+#menuInfo{font-size:1.02rem;line-height:1.3;color:#e5e7eb;opacity:.97;max-height:100px;overflow:auto;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,0.16);border:1px solid rgba(148,163,184,0.12);}
+#menuInfo.is-empty{display:none;}
+#feedback,#promptHelper,.subtitle{white-space:pre-line;}
+
+
+
+/* ===== Adaptive option layouts (restored logic) =====
+   1 option  -> full width
+   2 options -> 2 columns
+   3 options -> 3 columns (2 columns on small laptops)
+   4 options -> 2x2
+   5 options -> 3 + 2 (top row 3)
+   Mobile    -> always 1 column
+*/
+@media(max-width:900px){
+  .layout-3{grid-template-columns:1fr 1fr;}
+}
+
+
+/* ===== Responsive spacing (reduce scroll) ===== */
+/* Use viewport-aware margins so the quiz sits higher on shorter screens */
+.app-container{margin:24px auto;}
+@media(max-height:760px){
+  .app-container{margin:14px auto;}
+}
+@media(max-width:900px){
+  .app-container{margin:18px auto;padding:18px;}
+  header{margin-bottom:12px;}
+  .progress-bar{margin-bottom:12px;}
+  .prompt-text{font-size:clamp(1.6rem, 4.8vw, 2.15rem);margin-bottom:12px;}
+  .quiz-card{padding:18px 16px;}
+}
+@media(max-width:640px){
+  .app-container{margin:10px auto;padding:14px;}
+  header{margin-bottom:10px;gap:8px;}
+  .progress-bar{margin-bottom:10px;}
+  .prompt-helper{font-size:1.02rem;margin-bottom:12px;}
+  .prompt-text{font-size:clamp(1.35rem, 6vw, 1.85rem);margin-bottom:10px;}
+  .quiz-card{padding:16px 14px;}
+  button.nav-btn,button.secondary-btn{padding:8px 12px;}
+}
+</style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <div>
+        <div class="title">{{TITLE}}</div>
+        <div class="subtitle">{{SUBTITLE}}</div>
+      </div>
+      <div class="pill" id="pillText">Multiple Choice</div>
+    </header>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="quiz-card">
+  <div class="menu-overlay" id="menuOverlay">
+    <div class="menu-head">
+      <div id="menuWelcome">WELCOME</div>
+      <div id="menuTitle">{{TITLE}}</div>
+      <div id="menuSubtitle">{{SUBTITLE}}</div>
+      <div id="menuInfo" class="is-empty" style="display:none"></div>
+    </div>
+    <div class="menu-actions">
+      <button class="nav-btn" id="startQuizBtn" type="button">Start quiz</button>
+    </div>
+  </div>
+  <div id="quizUI">
+
+      <div class="question-meta">
+        <div class="question-index" id="questionIndex">Question 1 / 10</div>
+        <div class="question-type" id="questionType"></div>
+      </div>
+
+      <div class="prompt-label" id="promptLabel" style="display:none">Prompt</div>
+      <div class="prompt-helper" id="promptHelper">{{PROMPT_HELPER}}</div>
+ <div class="prompt-text" id="promptText">...</div>
+
+      <div class="options" id="optionsContainer"></div>
+      <div class="feedback" id="feedback"></div>
+
+      <div class="nav-row">
+        <div class="nav-buttons">
+          <button class="nav-btn" id="prevBtn" disabled>← Previous</button>
+          <button class="nav-btn" id="nextBtn">Next →</button>
+        </div>
+        <div class="nav-buttons">
+          <button class="secondary-btn" id="menuBtn" type="button">Back to menu</button>
+          <button class="secondary-btn" id="restartBtn">Restart</button>
+        </div>
+      </div>
+
+      <div class="nav-row" style="margin-top:10px;">
+        <div class="progress-text" id="progressText">Answered 0 / 10</div>
+        <div class="score-pill" id="scorePill">Score: 0 / 10</div>
+      </div>
+
+      <div class="recap" id="recap" style="display:block;">
+        <h3>Recap</h3>
+        <div id="recapList"></div>
+      </div>
+    </div>
+  </div>
+
+    </div>
+
+<!-- The generator will upsert these constants: QUIZ_CONFIG, LABEL_CONFIG, DATA -->
+  <script>
+    const QUIZ_CONFIG = {
+  "fields": {
+    "word": {
+      "roles": [
+        "answer"
+      ],
+      "label": ""
+    },
+    "arabic": {
+      "roles": [
+        "prompt"
+      ],
+      "label": "ARABIC"
+    },
+    "english": {
+      "roles": [
+        "prompt"
+      ],
+      "label": "ENGLISH"
+    },
+    "examplear": {
+      "roles": [],
+      "label": ""
+    },
+    "exampleln": {
+      "roles": [],
+      "label": ""
+    },
+    "translation": {
+      "roles": [],
+      "label": ""
+    }
+  },
+  "text": {
+    "title": "Learn 50 words in Arabic",
+    "subtitle": "ikhtibār li‑ta‘allum al‑‘arabiyya (Quiz to learn Arabic)",
+    "prompt_helper": "Which English term matches this prompt?",
+    "correct": "Correct! For example : \"{{examplear}}\" (\"{{exampleln}}\"), In English : \"{{translation\"}}\"",
+    "incorrect": "Incorrect. The correct answer is \"{{answer}}\" (\"{{arabic}}\"). In English, (=\"{{english}}\")",
+    "score": "Score: {{score}} / {{total}}",
+    "end_message": "Quiz complete!",
+    "menu_info": "This quiz is designed to help you learn 50 common Arabic words. \nAnswer the 10 questions. They will be different each time you try the quiz.",
+    "start_button": "start",
+    "menu_button": "main menu"
+  },
+  "settings": {
+    "num_options": 3,
+    "num_questions": 10
+  }
+};
+    const LABEL_CONFIG = {
+  "ARABIC": {
+    "uiLabel": "ARABIC",
+    "uiQuestion": "How do you pronounce this word?",
+    "maskAnswer": false
+  },
+  "ENGLISH": {
+    "uiLabel": "ENGLISH",
+    "uiQuestion": "How do you say this word in Arabic?",
+    "maskAnswer": false
+  }
+};
+    const DATA = [
+ { word: "bayt", arabic: "بيت", english: "house", examplear: "أنا في البيت.", exampleln: "ana fi al-bayt.", translation: "I am at home." },
+ { word: "rajul", arabic: "رجل", english: "man", examplear: "الرجل يقرأ كتابًا.", exampleln: "ar-rajul yaqra'u kitāban.", translation: "The man is reading a book." },
+ { word: "imra’a", arabic: "امرأة", english: "woman", examplear: "المرأة تعمل في المكتب.", exampleln: "al-mar’a ta‘mal fi al-maktab.", translation: "The woman works in the office." },
+ { word: "walad", arabic: "ولد", english: "boy", examplear: "الولد يلعب في الحديقة.", exampleln: "al-walad yal‘ab fi al-hadīqa.", translation: "The boy is playing in the garden." },
+ { word: "bint", arabic: "بنت", english: "girl", examplear: "البنت تذهب إلى المدرسة.", exampleln: "al-bint tadhhab ila al-madrasa.", translation: "The girl goes to school." },
+ { word: "kitāb", arabic: "كتاب", english: "book", examplear: "هذا كتاب جديد.", exampleln: "hādhā kitāb jadīd.", translation: "This is a new book." },
+ { word: "qalām", arabic: "قلم", english: "pen", examplear: "أحتاج قلمًا للكتابة.", exampleln: "ahtāju qalaman lil-kitāba.", translation: "I need a pen to write." },
+ { word: "madrasa", arabic: "مدرسة", english: "school", examplear: "الطلاب في المدرسة.", exampleln: "at-tullāb fi al-madrasa.", translation: "The students are at school." },
+ { word: "sayyāra", arabic: "سيارة", english: "car", examplear: "السيارة سريعة.", exampleln: "as-sayyāra sarī‘a.", translation: "The car is fast." },
+ { word: "ṭāwila", arabic: "طاولة", english: "table", examplear: "الطعام على الطاولة.", exampleln: "at-ta‘ām ‘ala at-ṭāwila.", translation: "The food is on the table." },
+ { word: "kursī", arabic: "كرسي", english: "chair", examplear: "جلست على الكرسي.", exampleln: "jalastu ‘ala al-kursī.", translation: "I sat on the chair." },
+ { word: "bāb", arabic: "باب", english: "door", examplear: "أغلق الباب من فضلك.", exampleln: "aghliq al-bāb min faḍlik.", translation: "Close the door please." },
+ { word: "shubbāk", arabic: "شباك", english: "window", examplear: "الهواء يدخل من الشباك.", exampleln: "al-hawā’ yadkhul min ash-shubbāk.", translation: "Air comes through the window." },
+ { word: "ḥaqība", arabic: "حقيبة", english: "bag", examplear: "الحقيبة ثقيلة.", exampleln: "al-ḥaqība thaqīla.", translation: "The bag is heavy." },
+ { word: "ṭā’ira", arabic: "طائرة", english: "airplane", examplear: "الطائرة تقلع الآن.", exampleln: "at-ṭā’ira tuqli‘ al-ān.", translation: "The plane is taking off now." },
+ { word: "baḥr", arabic: "بحر", english: "sea", examplear: "أحب السباحة في البحر.", exampleln: "uḥibbu as-sibāḥa fi al-baḥr.", translation: "I love swimming in the sea." },
+ { word: "nahr", arabic: "نهر", english: "river", examplear: "النهر طويل.", exampleln: "an-nahr ṭawīl.", translation: "The river is long." },
+ { word: "jabal", arabic: "جبل", english: "mountain", examplear: "تسلقنا الجبل.", exampleln: "tasallaqnā al-jabal.", translation: "We climbed the mountain." },
+ { word: "shams", arabic: "شمس", english: "sun", examplear: "الشمس مشرقة اليوم.", exampleln: "ash-shams mushriqa al-yawm.", translation: "The sun is shining today." },
+ { word: "qamar", arabic: "قمر", english: "moon", examplear: "القمر جميل الليلة.", exampleln: "al-qamar jamīl al-layla.", translation: "The moon is beautiful tonight." },
+ { word: "najma", arabic: "نجمة", english: "star", examplear: "رأيت نجمة في السماء.", exampleln: "ra’aytu najma fi as-samā’.", translation: "I saw a star in the sky." },
+ { word: "samā’", arabic: "سماء", english: "sky", examplear: "السماء زرقاء.", exampleln: "as-samā’ zarqā’.", translation: "The sky is blue." },
+ { word: "ṭa‘ām", arabic: "طعام", english: "food", examplear: "الطعام لذيذ.", exampleln: "at-ta‘ām ladhīdh.", translation: "The food is delicious." },
+ { word: "mā’", arabic: "ماء", english: "water", examplear: "أشرب الماء كل يوم.", exampleln: "ashrabu al-mā’ kulla yawm.", translation: "I drink water every day." },
+ { word: "ḥalīb", arabic: "حليب", english: "milk", examplear: "أريد كوبًا من الحليب.", exampleln: "urīdu kūban min al-ḥalīb.", translation: "I want a cup of milk." },
+ { word: "qahwa", arabic: "قهوة", english: "coffee", examplear: "أشرب القهوة صباحًا.", exampleln: "ashrabu al-qahwa ṣabāḥan.", translation: "I drink coffee in the morning." },
+ { word: "shāy", arabic: "شاي", english: "tea", examplear: "أحب الشاي بالنعناع.", exampleln: "uḥibbu ash-shāy bi-n-na‘nā‘.", translation: "I like mint tea." },
+ { word: "fākihā", arabic: "فاكهة", english: "fruit", examplear: "أكلت فاكهة طازجة.", exampleln: "akaltu fākihā ṭāzija.", translation: "I ate fresh fruit." },
+ { word: "khubz", arabic: "خبز", english: "bread", examplear: "أشتري الخبز من المخبز.", exampleln: "ashtarī al-khubz min al-makhbaz.", translation: "I buy bread from the bakery." },
+ { word: "bayḍ", arabic: "بيض", english: "egg", examplear: "أطبخ البيض للفطور.", exampleln: "aṭbukh al-bayḍ lil-fuṭūr.", translation: "I cook eggs for breakfast." },
+ { word: "sūq", arabic: "سوق", english: "market", examplear: "ذهبت إلى السوق.", exampleln: "dhahabtu ila as-sūq.", translation: "I went to the market." },
+ { word: "mustashfā", arabic: "مستشفى", english: "hospital", examplear: "هو يعمل في المستشفى.", exampleln: "huwa ya‘mal fi al-mustashfā.", translation: "He works in the hospital." },
+ { word: "madīna", arabic: "مدينة", english: "city", examplear: "المدينة كبيرة.", exampleln: "al-madīna kabīra.", translation: "The city is big." },
+ { word: "qarya", arabic: "قرية", english: "village", examplear: "القرية هادئة.", exampleln: "al-qarya hādi’a.", translation: "The village is quiet." },
+ { word: "ṭarīq", arabic: "طريق", english: "road", examplear: "الطريق مزدحم.", exampleln: "aṭ-ṭarīq muzdaḥim.", translation: "The road is crowded." },
+ { word: "jāmi‘a", arabic: "جامعة", english: "university", examplear: "أدرس في الجامعة.", exampleln: "adrusu fi al-jāmi‘a.", translation: "I study at the university." },
+ { word: "maktaba", arabic: "مكتبة", english: "library", examplear: "ذهبت إلى المكتبة.", exampleln: "dhahabtu ila al-maktaba.", translation: "I went to the library." },
+ { word: "ghurfa", arabic: "غرفة", english: "room", examplear: "الغرفة نظيفة.", exampleln: "al-ghurfa naẓīfa.", translation: "The room is clean." },
+ { word: "sarīr", arabic: "سرير", english: "bed", examplear: "أنا على السرير.", exampleln: "ana ‘ala as-sarīr.", translation: "I am on the bed." },
+ { word: "ḥadīqa", arabic: "حديقة", english: "garden/park", examplear: "الحديقة جميلة.", exampleln: "al-ḥadīqa jamīla.", translation: "The garden is beautiful." },
+ { word: "ḥayawān", arabic: "حيوان", english: "animal", examplear: "الحيوان في الغابة.", exampleln: "al-ḥayawān fi al-ghāba.", translation: "The animal is in the forest." },
+ { word: "kalb", arabic: "كلب", english: "dog", examplear: "الكلب ينبح.", exampleln: "al-kalb yanbaḥ.", translation: "The dog is barking." },
+ { word: "qiṭṭa", arabic: "قطة", english: "cat", examplear: "القطة نائمة.", exampleln: "al-qiṭṭa nā’ima.", translation: "The cat is sleeping." },
+ { word: "ṭayr", arabic: "طير", english: "bird", examplear: "الطير يطير عاليًا.", exampleln: "aṭ-ṭayr yaṭīr ‘āliyan.", translation: "The bird flies high." },
+ { word: "samaka", arabic: "سمكة", english: "fish", examplear: "أحب السمك المشوي.", exampleln: "uḥibbu as-samak al-mashwī.", translation: "I like grilled fish." },
+ { word: "waqt", arabic: "وقت", english: "time", examplear: "ليس لدينا وقت.", exampleln: "laysa ladaynā waqt.", translation: "We don’t have time." },
+ { word: "yawm", arabic: "يوم", english: "day", examplear: "اليوم جميل.", exampleln: "al-yawm jamīl.", translation: "Today is beautiful." },
+ { word: "layl", arabic: "ليل", english: "night", examplear: "الليل هادئ.", exampleln: "al-layl hādi’.", translation: "The night is quiet." },
+ { word: "ṣadīq", arabic: "صديق", english: "friend", examplear: "هو صديقي المفضل.", exampleln: "huwa ṣadīqī al-mufaḍḍal.", translation: "He is my best friend." },
+ { word: "‘ā’ila", arabic: "عائلة", english: "family", examplear: "العائلة مهمة.", exampleln: "al-‘ā’ila muhimma.", translation: "Family is important." }
+];
+  </script>
+<!-- TAB_TITLE_PATCH_V1: set browser tab title from QUIZ_CONFIG.text.title -->
+<script>
+(function(){
+  function nl(s){ return (s==null? '' : String(s)).replace(/\\n/g,'\n'); }
+  function setTitle(){
+    try{
+      var t = (typeof QUIZ_CONFIG !== 'undefined' && QUIZ_CONFIG.text && QUIZ_CONFIG.text.title) ? QUIZ_CONFIG.text.title : '';
+      if(t && String(t).trim()) document.title = nl(t);
+    }catch(e){}
+  }
+  // Run now (constants already exist when this script is inserted after them)
+  setTitle();
+  // Also run once DOM is ready, and retry briefly (covers generators that upsert later)
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setTitle);
+  setTimeout(setTitle, 0);
+  setTimeout(setTitle, 50);
+})();
+</script>
+
+
+  <script>
+  // =========================================================
+  // QUIZ ENGINE (CONFIG-DRIVEN)
+  // Uses: QUIZ_CONFIG (roles+text+settings), LABEL_CONFIG (per label UI), DATA (dataset)
+  // =========================================================
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function getFieldsByRole(role){
+    try{
+      return Object.keys(QUIZ_CONFIG.fields||{}).filter(k => (QUIZ_CONFIG.fields[k].roles||[]).includes(role));
+    }catch(e){
+      return [];
+    }
+  }
+
+  function safeText(t){
+    return (t===null||t===undefined) ? "" : String(t);
+  }
+
+  // =========================================================
+  // Dynamic placeholder support (template contract)
+  // Any {{fieldName}} from the current DATA row must resolve in feedback text, etc.
+  // =========================================================
+  function toSafeKey(k){
+    return safeText(k)
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g,'_')
+      .replace(/[^a-z0-9_]/g,'_')
+      .replace(/_+/g,'_')
+      .replace(/^_+|_+$/g,'');
+  }
+
+  function applyTemplate(t, ctx){
+    var s = safeText(t);
+    if(!s || s.indexOf('{{') === -1) return s;
+    ctx = ctx || {};
+    return s.replace(/\{\{\s*([^}]+?)\s*\}\}/g, function(_, key){
+      key = safeText(key).trim();
+      if(!key) return '';
+      if(Object.prototype.hasOwnProperty.call(ctx, key)) return safeText(ctx[key]);
+      var sk = toSafeKey(key);
+      if(sk && Object.prototype.hasOwnProperty.call(ctx, sk)) return safeText(ctx[sk]);
+      var lk = key.toLowerCase();
+      if(Object.prototype.hasOwnProperty.call(ctx, lk)) return safeText(ctx[lk]);
+      return '';
+    });
+  }
+
+  // Expose for generator-injected wrappers (if any) and for internal use
+  window.applyTemplate = window.applyTemplate || applyTemplate;
+  window.__QUIZ_CTX = window.__QUIZ_CTX || {};
+
+
+  // DOM refs
+  const progressFillEl = document.getElementById("progressFill");
+  const questionIndexEl = document.getElementById("questionIndex");
+  const questionTypeEl = document.getElementById("questionType");
+  const promptLabelEl = document.getElementById("promptLabel");
+  const promptTextEl = document.getElementById("promptText");
+  const promptHelperEl = document.getElementById("promptHelper");
+  const optionsContainer = document.getElementById("optionsContainer");
+
+function chooseLayoutClass(numOptions){
+  // 1 -> full width
+  // 2 -> 2 columns
+  // 3 -> 3 columns (2 columns on <=900px)
+  // 4 -> 2x2
+  // 5 -> 3 + 2 (top row 3)
+  // Mobile override handled by CSS @media(max-width:640px)
+  if(numOptions <= 1) return 'layout-1';
+  if(numOptions === 2) return 'layout-2';
+  if(numOptions === 3) return (window.innerWidth <= 900 ? 'layout-2' : 'layout-3');
+  if(numOptions === 4) return 'layout-4';
+  if(numOptions === 5) return (window.innerWidth <= 900 ? 'layout-4' : 'layout-5');
+  return (window.innerWidth <= 900 ? 'layout-2' : 'layout-3');
+}
+
+function applyOptionsLayout(numOptions){
+  try{
+    var cls = chooseLayoutClass(numOptions);
+    optionsContainer.className = 'options ' + cls;
+  }catch(e){
+    applyOptionsLayout(numOptions);
+  }
+
+// Re-apply option layout when viewport changes (mobile/tablet/laptop)
+window.addEventListener("resize", function(){
+  try{ applyOptionsLayout(numOptions); }catch(e){}
+});
+
+}
+
+  const feedbackEl = document.getElementById("feedback");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const restartBtn = document.getElementById("restartBtn");
+  const progressTextEl = document.getElementById("progressText");
+  const scorePillEl = document.getElementById("scorePill");
+  const recapEl = document.getElementById("recap");
+  const recapListEl = document.getElementById("recapList");
+  const pillTextEl = document.getElementById("pillText");
+
+  var questionOrder = [];
+  var currentIndex = 0;
+  var score = 0;
+  var answeredCount = 0;
+  var history = [];
+  var totalQuestions = 0;
+
+  function pickPromptField(entry, promptFields, answerField){
+    const candidates = shuffle(promptFields);
+    for(const f of candidates){
+      if(f === answerField) continue;
+      const v = safeText(entry[f]).trim();
+      const ans = safeText(entry[answerField]).trim();
+      if(v && v.toLowerCase() !== ans.toLowerCase()) return f;
+    }
+    return promptFields.find(f => safeText(entry[f]).trim()) || answerField;
+  }
+
+  function buildOptions(correct, allAnswers, numOptions){
+    const wrongPool = shuffle(allAnswers.filter(a => a && a.toLowerCase() !== correct.toLowerCase()));
+    const wrong = wrongPool.slice(0, Math.max(0, numOptions - 1));
+    return shuffle([correct, ...wrong]);
+  }
+
+  function renderRecap(answerField){
+    recapListEl.innerHTML = "";
+    if(answeredCount === 0){
+      recapEl.style.display = "none";
+      return;
+    }
+    recapEl.style.display = "block";
+
+    history.forEach((h, idx) => {
+      if(!h) return;
+      const div = document.createElement("div");
+      div.className = "recap-item";
+      div.innerHTML = `
+        <div class="q-label">Q${idx+1} – ${h.uiLabel}</div>
+        <div class="prompt">${h.promptValue}</div>
+        <div class="answer-line">
+          <span class="${h.isCorrect ? "tag-correct" : "tag-incorrect"}">
+            Your answer: ${h.chosen ?? "—"}
+          </span>
+          <span class="tag-neutral">Correct: ${h.correct}</span>
+        </div>
+      `;
+      recapListEl.appendChild(div);
+    });
+  }
+
+  function updateProgress(){
+    progressTextEl.textContent = `Answered ${answeredCount} / ${totalQuestions}`;
+    scorePillEl.textContent = `Score: ${score} / ${totalQuestions}`;
+    const denom = Math.max(1, totalQuestions - 1);
+    const pct = (currentIndex / denom) * 100;
+    progressFillEl.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+  }
+
+  function updateNavButtons(){
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex >= totalQuestions - 1;
+  }
+
+  function setFeedback(text, kind){
+    try{
+      if(typeof window.applyTemplate === "function"){
+        text = window.applyTemplate(text, window.__QUIZ_CTX || {});
+      }
+    }catch(e){}
+    feedbackEl.textContent = text;
+    feedbackEl.className = "feedback" + (kind ? " " + kind : "");
+  }
+
+  function loadQuestion(answerField, promptFields, numOptions, texts){
+    const entryIndex = questionOrder[currentIndex];
+    const entry = DATA[entryIndex];
+
+    const promptField = pickPromptField(entry, promptFields, answerField);
+    const promptValue = safeText(entry[promptField]);
+    let promptValueDisplay = promptValue;
+    const correct = safeText(entry[answerField]); safeText(entry[answerField]);
+
+    // label mapping from field -> labelKey -> LABEL_CONFIG
+    const fieldDef = (QUIZ_CONFIG.fields||{})[promptField] || {};
+    const labelKey = fieldDef.label || promptField;
+    const labelCfg = (LABEL_CONFIG||{})[labelKey] || { uiLabel: labelKey, uiQuestion: (texts.prompt_helper||"") };
+
+    const uiLabel = labelCfg.uiLabel || labelKey;
+    const uiQuestion = labelCfg.uiQuestion || texts.prompt_helper || "";
+
+    
+    // Build template context for dynamic placeholders
+    try{
+      var maskAnswer = !!labelCfg.maskAnswer;
+      if(maskAnswer && typeof maskAnswerInText === 'function'){
+        promptValueDisplay = maskAnswerInText(promptValueDisplay, correct);
+      }
+      window.__QUIZ_CTX = Object.assign({}, entry, {
+        answer: correct,
+        prompt: promptValueDisplay,
+        promptText: promptValueDisplay,
+        promptHelper: uiQuestion,
+        uiLabel: uiLabel,
+        uiQuestion: uiQuestion,
+        maskAnswer: maskAnswer,
+        questionIndex: (currentIndex + 1) + ' / ' + totalQuestions,
+        score: score,
+        total: totalQuestions,
+        answerField: answerField,
+        promptField: promptField,
+        labelKey: labelKey
+      });
+    }catch(e){}
+// header
+    questionIndexEl.textContent = `Question ${currentIndex + 1} / ${totalQuestions}`;
+    questionTypeEl.textContent = uiLabel;
+    // prompt label element is optional (hidden by default)
+    if(promptLabelEl) promptLabelEl.textContent = uiLabel;
+
+    promptHelperEl.textContent = uiQuestion;
+    promptTextEl.textContent = (typeof promptValueDisplay !== "undefined" ? promptValueDisplay : promptValue);
+
+    // options
+    const allAnswers = DATA.map(r => safeText(r[answerField])).filter(Boolean);
+    const options = buildOptions(correct, allAnswers, numOptions);
+
+    optionsContainer.innerHTML = "";
+    applyOptionsLayout(numOptions);
+    setFeedback("", "");
+
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerHTML = `<span class="label">${opt}</span>`;
+      btn.addEventListener("click", () => handleClick(opt, correct, uiLabel, promptValue, options));
+      optionsContainer.appendChild(btn);
+    });
+
+    // restore previous answer (if navigating)
+    const dataIndex = questionOrder[currentIndex];
+  if (history[dataIndex]) { restorePreviousAnswer(history[dataIndex], correct); }
+
+    updateNavButtons();
+    updateProgress();
+  }
+
+  function restorePreviousAnswer(h, correct){
+    try{ if(h && h.ctx) window.__QUIZ_CTX = h.ctx; }catch(e){}
+    const buttons = [...document.querySelectorAll(".option-btn")];
+    buttons.forEach(b => b.classList.remove("selected","correct","incorrect"));
+
+    const chosen = h.chosen;
+    const chosenBtn = buttons.find(b => b.textContent.trim() === chosen);
+    if(chosenBtn){
+      chosenBtn.classList.add("selected");
+      if(h.isCorrect){
+        chosenBtn.classList.add("correct");
+        setFeedback(QUIZ_CONFIG.text?.correct || "Correct!", "correct");
+      } else {
+        chosenBtn.classList.add("incorrect");
+        const msg = (QUIZ_CONFIG.text?.incorrect || "Incorrect. The correct answer is {{answer}}.")
+          ;
+        setFeedback(msg, "incorrect");
+        const correctBtn = buttons.find(b => b.textContent.trim() === correct);
+        if(correctBtn) correctBtn.classList.add("correct");
+      }
+    }
+  }
+
+  function handleClick(choice, correct, uiLabel, promptValue, options){
+    const dataIndex = questionOrder[currentIndex];
+  if (history[dataIndex] && typeof history[dataIndex].isCorrect === "boolean") return;
+
+    const isCorrect = choice === correct;
+    const buttons = [...document.querySelectorAll(".option-btn")];
+    buttons.forEach(b => b.classList.remove("selected","correct","incorrect"));
+
+    const chosenBtn = buttons.find(b => b.textContent.trim() === choice);
+    if(chosenBtn) chosenBtn.classList.add("selected");
+
+    if(isCorrect){
+      if(chosenBtn) chosenBtn.classList.add("correct");
+      score += 1;
+      setFeedback(QUIZ_CONFIG.text?.correct || "Correct!", "correct");
+    } else {
+      if(chosenBtn) chosenBtn.classList.add("incorrect");
+      const msg = (QUIZ_CONFIG.text?.incorrect || "Incorrect. The correct answer is {{answer}}.")
+        ;
+      setFeedback(msg, "incorrect");
+      const correctBtn = buttons.find(b => b.textContent.trim() === correct);
+      if(correctBtn) correctBtn.classList.add("correct");
+    }
+
+    answeredCount += 1;
+    history[dataIndex] = {
+      uiLabel,
+      promptValue: (typeof promptValueDisplay !== 'undefined' ? promptValueDisplay : promptValue),
+      correct,
+      chosen: choice,
+      isCorrect,
+      options,
+      ctx: (function(){
+        try{ return Object.assign({}, window.__QUIZ_CTX || {}, { chosen: choice, isCorrect: isCorrect, score: score, total: totalQuestions }); }catch(e){ return null; }
+      })()
+    };
+    updateProgress();
+  }
+
+  function startQuiz(){
+    const answerFields = getFieldsByRole("answer");
+    const promptFields = getFieldsByRole("prompt");
+
+    const answerField = answerFields[0] || "term";
+    const numOptions = (QUIZ_CONFIG.settings && QUIZ_CONFIG.settings.num_options) ? QUIZ_CONFIG.settings.num_options : 4;
+    const maxQuestions = (QUIZ_CONFIG.settings && QUIZ_CONFIG.settings.num_questions) ? QUIZ_CONFIG.settings.num_questions : DATA.length;
+
+    totalQuestions = Math.max(0, Math.min(maxQuestions, DATA.length));
+
+    // update pill
+    if(pillTextEl){
+      pillTextEl.textContent = `${totalQuestions} Questions · Multiple Choice`;
+    }
+
+    if(!Array.isArray(DATA) || DATA.length === 0 || totalQuestions === 0){
+      // graceful empty state
+      questionIndexEl.textContent = "No questions available";
+      questionTypeEl.textContent = "";
+      promptTextEl.textContent = "";
+      promptHelperEl.textContent = "Please inject a dataset into this quiz HTML.";
+      optionsContainer.innerHTML = "";
+    applyOptionsLayout(numOptions);
+      recapEl.style.display = "none";
+      progressFillEl.style.width = "0%";
+      progressTextEl.textContent = "Answered 0 / 0";
+      scorePillEl.textContent = "Score: 0 / 0";
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      return;
+    }
+
+    const indices = DATA.map((_, i) => i);
+    questionOrder = shuffle(indices).slice(0, totalQuestions);
+
+    currentIndex = 0;
+    score = 0;
+    answeredCount = 0;
+    history = [];
+    recapEl.style.display = "none";
+    progressFillEl.style.width = "0%";
+
+    const texts = QUIZ_CONFIG.text || {};
+
+    // navigation
+    prevBtn.onclick = () => {
+      if(currentIndex > 0){
+        currentIndex -= 1;
+        loadQuestion(answerField, promptFields, numOptions, texts);
+      }
+    };
+    nextBtn.onclick = () => {
+      if(currentIndex < totalQuestions - 1){
+        currentIndex += 1;
+        loadQuestion(answerField, promptFields, numOptions, texts);
+      }
+    };
+    restartBtn.onclick = () => { history = {}; answeredCount = 0; score = 0; quizCompleted = false; startQuiz(); };
+
+    loadQuestion(answerField, promptFields, numOptions, texts);
+  }
+
+  // End-of-quiz recap renderer (end only)
+function renderFinalRecap(){
+  recapListEl.innerHTML = "";
+  if(answeredCount < totalQuestions){
+    recapEl.style.display = "none";
+    return;
+  }
+  recapEl.style.display = "block";
+  history.forEach((h, idx) => {
+    if(!h) return;
+    const div = document.createElement("div");
+    div.className = "recap-item";
+    div.innerHTML = `
+      <div class="q-label">Q${idx + 1} – ${h.uiLabel}</div>
+      <div class="prompt">${h.promptValue}</div>
+      <div class="answer-line">
+        <span class="${h.isCorrect ? "tag-correct" : "tag-incorrect"}">
+          Your answer: ${h.chosen ?? "—"}
+        </span>
+        <span class="tag-neutral">Correct: ${h.correct}</span>
+      </div>
+    `;
+    recapListEl.appendChild(div);
+  });
+}
+
+// Start
+
+  startQuiz();
+  </script>
+
+<!-- RECAP_PATCH: Always-visible recap that does NOT change the core engine or constants block. -->
+<script>
+(function(){
+  try{
+    // Grab DOM
+    var recapEl = document.getElementById('recap');
+    var recapListEl = document.getElementById('recapList');
+    if(!recapEl || !recapListEl) return;
+
+    // Always show recap container (user requested)
+    recapEl.style.display = 'block';
+
+    // Helpers
+    function safeText(t){ return (t===null || t===undefined) ? '' : String(t); }
+
+    function applyTpl(t, ctx){
+      try{
+        if(typeof window.applyTemplate === 'function') return window.applyTemplate(t, ctx || {});
+      }catch(e){}
+      return safeText(t);
+    }
+
+    function getHistoryItems(){
+      // Robust: supports history keyed by quiz index OR by DATA index (dataIndex)
+      var history = window.history; // may be shadowed; fallback below
+      // In this template, history is a var in global scope, not window.history (browser history). So use eval-safe access.
+      // We'll try to read from global var via window.__quiz_history__ indirection set below.
+      var h = window.__quiz_history__;
+      var order = window.__quiz_questionOrder__;
+
+      var items = [];
+      var seen = {};
+
+      if(Array.isArray(order) && order.length){
+        for(var qi=0; qi<order.length; qi++){
+          var dataIndex = order[qi];
+          var entry = null;
+          if(h && (typeof dataIndex !== 'undefined') && h[dataIndex]) entry = h[dataIndex];
+          if(!entry && h && h[qi]) entry = h[qi];
+          if(entry){
+            items.push({q: qi+1, h: entry});
+            seen[dataIndex] = true;
+            seen[qi] = true;
+          }
+        }
+      }
+
+      // Fallback: include any remaining history entries
+      if(h){
+        if(Array.isArray(h)){
+          for(var i=0;i<h.length;i++){
+            if(seen[i]) continue;
+            if(h[i]) items.push({q: items.length+1, h: h[i]});
+          }
+        } else if(typeof h === 'object'){
+          for(var k in h){
+            if(!Object.prototype.hasOwnProperty.call(h,k)) continue;
+            if(seen[k]) continue;
+            if(h[k]) items.push({q: items.length+1, h: h[k]});
+          }
+        }
+      }
+
+      return items;
+    }
+
+    function renderRecapPatched(){
+      recapListEl.innerHTML = '';
+      var items = getHistoryItems();
+      if(!items.length){
+        var d0 = document.createElement('div');
+        d0.className = 'recap-item';
+        d0.innerHTML = '<div class="q-label">No answers yet</div><div class="prompt">Answer questions to populate the recap.</div>';
+        recapListEl.appendChild(d0);
+        return;
+      }
+
+      for(var i=0;i<items.length;i++){
+        var qnum = items[i].q;
+        var h = items[i].h || {};
+        var div = document.createElement('div');
+        div.className = 'recap-item';
+
+        var ctx = h.ctx || window.__QUIZ_CTX || {};
+        var promptDisp = applyTpl(h.promptValue, ctx);
+        var chosenDisp = applyTpl((h.chosen==null ? '—' : h.chosen), ctx);
+        var correctDisp = applyTpl((h.correct==null ? '' : h.correct), ctx);
+
+        var row = '';
+        row += '<div class="q-label">Q' + qnum + ' – ' + safeText(h.uiLabel) + '</div>';
+        row += '<div class="prompt">' + promptDisp + '</div>';
+        row += '<div class="answer-line">';
+        row += '<span class="' + (h.isCorrect ? 'tag-correct' : 'tag-incorrect') + '">Your answer: ' + chosenDisp + '</span>';
+        row += '<span class="tag-neutral">Correct: ' + correctDisp + '</span>';
+        row += '</div>';
+        div.innerHTML = row;
+        recapListEl.appendChild(div);
+      }
+    }
+
+    // ---- Hook into the engine without modifying it ----
+    // The engine uses global vars (questionOrder/history) but declared with var, so not on window.
+    // We expose them by wrapping startQuiz/loadQuestion/handleClick when they exist.
+
+    function attachHooks(){
+      try{
+        if(typeof window.startQuiz === 'function' && !window.__recapPatchedStart){
+          var origStart = window.startQuiz;
+          window.startQuiz = function(){
+            var r = origStart.apply(this, arguments);
+            // try to read globals via eval in this scope
+            try{ window.__quiz_history__ = history; }catch(e){}
+            try{ window.__quiz_questionOrder__ = questionOrder; }catch(e){}
+            renderRecapPatched();
+            return r;
+          };
+          window.__recapPatchedStart = true;
+        }
+
+        if(typeof window.loadQuestion === 'function' && !window.__recapPatchedLoad){
+          var origLoad = window.loadQuestion;
+          window.loadQuestion = function(){
+            var r = origLoad.apply(this, arguments);
+            try{ window.__quiz_history__ = history; }catch(e){}
+            try{ window.__quiz_questionOrder__ = questionOrder; }catch(e){}
+            renderRecapPatched();
+            return r;
+          };
+          window.__recapPatchedLoad = true;
+        }
+
+        if(typeof window.handleClick === 'function' && !window.__recapPatchedClick){
+          var origClick = window.handleClick;
+          window.handleClick = function(){
+            var r = origClick.apply(this, arguments);
+            try{ window.__quiz_history__ = history; }catch(e){}
+            try{ window.__quiz_questionOrder__ = questionOrder; }catch(e){}
+            renderRecapPatched();
+            return r;
+          };
+          window.__recapPatchedClick = true;
+        }
+      }catch(e){}
+    }
+
+    // Attach now and also shortly after in case scripts load later
+    attachHooks();
+    setTimeout(attachHooks, 0);
+    setTimeout(attachHooks, 50);
+
+    // Initial render
+    renderRecapPatched();
+  }catch(e){}
+})();
+</script>
+
+
+<!-- RECAP_PATCH_V5 (clears on restart/menu, reuses saved options for wrong-answer restore) -->
+<script>
+(function(){
+  function safeText(t){ return (t===null || t===undefined) ? '' : String(t); }
+  function nl(s){ return safeText(s).replace(/\\n/g,'\n'); }
+  function applyTpl(t, ctx){
+    try{ if(typeof window.applyTemplate === 'function') return window.applyTemplate(t, ctx||{}); }catch(e){}
+    return safeText(t);
+  }
+
+  function clearRecapUI(){
+    try{ var recapListEl = document.getElementById('recapList'); if(recapListEl) recapListEl.innerHTML = ''; }catch(e){}
+  }
+
+  function sync(){
+    try{ window.__quiz_history__ = history; }catch(e){}
+    try{ window.__quiz_questionOrder__ = questionOrder; }catch(e){}
+  }
+
+  function renderRecap(){
+    var recapEl = document.getElementById('recap');
+    var recapListEl = document.getElementById('recapList');
+    if(!recapEl || !recapListEl) return;
+    recapEl.style.display = 'block';
+    recapListEl.innerHTML = '';
+
+    var h = window.__quiz_history__;
+    var order = window.__quiz_questionOrder__;
+    var items = [];
+
+    if(Array.isArray(order) && order.length){
+      for(var qi=0; qi<order.length; qi++){
+        var di = order[qi];
+        var entry = (h && h[di]) ? h[di] : (h && h[qi] ? h[qi] : null);
+        if(entry) items.push({q: qi+1, h: entry});
+      }
+    }
+
+    if(!items.length){
+      var d0=document.createElement('div');
+      d0.className='recap-item';
+      d0.innerHTML='<div class="q-label">No answers yet</div><div class="prompt">Answer questions to populate the recap.</div>';
+      recapListEl.appendChild(d0);
+      return;
+    }
+
+    for(var i2=0;i2<items.length;i2++){
+      var qnum=items[i2].q;
+      var hh=items[i2].h||{};
+      var ctx=hh.ctx||window.__QUIZ_CTX||{};
+      var promptDisp = nl(applyTpl(hh.promptValue, ctx));
+      var chosenDisp = nl(applyTpl(hh.chosen==null?'—':hh.chosen, ctx));
+      var correctDisp = nl(applyTpl(hh.correct==null?'':hh.correct, ctx));
+
+      var div=document.createElement('div');
+      div.className='recap-item';
+      div.innerHTML = '<div class="q-label">Q'+qnum+' – '+safeText(hh.uiLabel)+'</div>'
+        + '<div class="prompt">'+promptDisp+'</div>'
+        + '<div class="answer-line">'
+        + '<span class="'+(hh.isCorrect?'tag-correct':'tag-incorrect')+'">Your answer: '+chosenDisp+'</span>'
+        + '<span class="tag-neutral">Correct: '+correctDisp+'</span>'
+        + '</div>';
+      recapListEl.appendChild(div);
+    }
+  }
+
+  function wrap(){
+    try{
+      // Patch loadQuestion to reuse previous options when revisiting
+      if(typeof window.loadQuestion === 'function' && !window.__wrapLoadOptions){
+        var _l = window.loadQuestion;
+        window.loadQuestion = function(answerField, promptFields, numOptions, texts){
+          var r = _l.apply(this, arguments);
+          try{
+            var dataIndex = questionOrder[currentIndex];
+            if(history && history[dataIndex] && Array.isArray(history[dataIndex].options) && history[dataIndex].options.length){
+              var correct = history[dataIndex].correct;
+              var uiLabel = history[dataIndex].uiLabel;
+              var promptValue = history[dataIndex].promptValue;
+              var options = history[dataIndex].options;
+              var optionsContainer = document.getElementById('optionsContainer');
+              if(optionsContainer){
+                optionsContainer.innerHTML = '';
+                options.forEach(function(opt){
+                  var btn = document.createElement('button');
+                  btn.className = 'option-btn';
+                  btn.innerHTML = '<span class="label">'+opt+'</span>';
+                  btn.addEventListener('click', function(){ window.handleClick(opt, correct, uiLabel, promptValue, options); });
+                  optionsContainer.appendChild(btn);
+                });
+              }
+            }
+          }catch(e){}
+          sync();
+          renderRecap();
+          return r;
+        };
+        window.__wrapLoadOptions = true;
+      }
+
+      if(typeof window.startQuiz === 'function' && !window.__wrapStartRecap){
+        var s=window.startQuiz;
+        window.startQuiz=function(){
+          clearRecapUI();
+          try{ window.__quiz_history__ = []; window.__quiz_questionOrder__ = []; }catch(e){}
+          var r=s.apply(this, arguments);
+          sync();
+          renderRecap();
+          return r;
+        };
+        window.__wrapStartRecap=true;
+      }
+
+      if(typeof window.handleClick === 'function' && !window.__wrapClickRecap){
+        var c=window.handleClick;
+        window.handleClick=function(){
+          var r=c.apply(this, arguments);
+          sync();
+          renderRecap();
+          return r;
+        };
+        window.__wrapClickRecap=true;
+      }
+
+      var rb = document.getElementById('restartBtn');
+      if(rb && !window.__wrapRestartClear){
+        rb.addEventListener('click', function(){
+          try{ window.__quiz_history__ = []; window.__quiz_questionOrder__ = []; }catch(e){}
+          clearRecapUI();
+        });
+        window.__wrapRestartClear = true;
+      }
+
+      sync();
+      renderRecap();
+    }catch(e){}
+  }
+
+  wrap();
+  setTimeout(wrap, 0);
+  setTimeout(wrap, 50);
+})();
+</script>
+
+<!-- MENU_OVERLAY_CONTROLLER (menu box text spacing + empty menu info) -->
+<script>
+(function(){
+  function nl(s){ return (s==null? '' : String(s)).replace(/\\n/g,'\n'); }
+  function applyTpl(t, ctx){
+    try{ if(typeof window.applyTemplate === 'function') return window.applyTemplate(t, ctx||{}); }catch(e){}
+    return (t==null? '' : String(t));
+  }
+
+  function initMenu(){
+    try{
+      var overlay = document.getElementById('menuOverlay');
+      var quizUI = document.getElementById('quizUI');
+      var startBtn = document.getElementById('startQuizBtn');
+      var menuBtn = document.getElementById('menuBtn');
+      var restartBtn = document.getElementById('restartBtn');
+      var card = document.querySelector('.quiz-card');
+
+      var menuTitle = document.getElementById('menuTitle');
+      var menuSubtitle = document.getElementById('menuSubtitle');
+      var menuInfo = document.getElementById('menuInfo');
+
+      if(!overlay || !quizUI || !startBtn) return;
+
+      function showOverlay(){
+        overlay.style.display='flex';
+        quizUI.style.display='none';
+        if(card) card.classList.add('menu-open');
+      }
+      function hideOverlay(){
+        overlay.style.display='none';
+        quizUI.style.display='block';
+        if(card) card.classList.remove('menu-open');
+      }
+
+      // Fill menu texts from QUIZ_CONFIG.text when available
+      try{
+        var t = (typeof QUIZ_CONFIG !== 'undefined' && QUIZ_CONFIG.text && QUIZ_CONFIG.text.title) ? QUIZ_CONFIG.text.title : (menuTitle ? menuTitle.textContent : '');
+        var st = (typeof QUIZ_CONFIG !== 'undefined' && QUIZ_CONFIG.text && QUIZ_CONFIG.text.subtitle) ? QUIZ_CONFIG.text.subtitle : (menuSubtitle ? menuSubtitle.textContent : '');
+        var info = (typeof QUIZ_CONFIG !== 'undefined' && QUIZ_CONFIG.text && QUIZ_CONFIG.text.menu_info) ? QUIZ_CONFIG.text.menu_info : '';
+        var startLabel = (typeof QUIZ_CONFIG !== 'undefined' && QUIZ_CONFIG.text && QUIZ_CONFIG.text.start_button) ? QUIZ_CONFIG.text.start_button : 'Start quiz';
+        var menuLabel = (typeof QUIZ_CONFIG !== 'undefined' && QUIZ_CONFIG.text && QUIZ_CONFIG.text.menu_button) ? QUIZ_CONFIG.text.menu_button : 'Back to menu';
+
+        if(menuTitle) menuTitle.textContent = nl(t);
+        if(menuSubtitle) menuSubtitle.textContent = nl(st);
+
+        var ctx = {};
+        try{
+          ctx = Object.assign({}, window.__QUIZ_CTX||{}, {
+            total: (typeof QUIZ_CONFIG !== 'undefined' && QUIZ_CONFIG.settings && QUIZ_CONFIG.settings.num_questions) ? QUIZ_CONFIG.settings.num_questions : (typeof DATA !== 'undefined' && Array.isArray(DATA) ? DATA.length : 0),
+            options: (typeof QUIZ_CONFIG !== 'undefined' && QUIZ_CONFIG.settings && QUIZ_CONFIG.settings.num_options) ? QUIZ_CONFIG.settings.num_options : 3
+          });
+        }catch(e){}
+
+        if(menuInfo){
+          var out = nl(applyTpl(info, ctx));
+          menuInfo.textContent = out;
+          var empty = !out.trim();
+          menuInfo.classList.toggle('is-empty', empty);
+          menuInfo.style.display = empty ? 'none' : 'block';
+        }
+
+        startBtn.textContent = startLabel;
+        if(menuBtn) menuBtn.textContent = menuLabel;
+      }catch(e){}
+
+      startBtn.addEventListener('click', function(){
+        try{ if(restartBtn) restartBtn.click(); }catch(e){}
+        hideOverlay();
+      });
+
+      if(menuBtn){
+        menuBtn.addEventListener('click', function(){
+          try{ if(restartBtn) restartBtn.click(); }catch(e){}
+          showOverlay();
+        });
+      }
+
+      showOverlay();
+    }catch(e){}
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMenu);
+  else initMenu();
+})();
+</script>
+
+
+
+<!-- BOXBG_CHECK: apply CSS fallback ONLY if Box Background.png cannot be loaded -->
+<script>
+(function(){
+  try{
+    var overlay = document.getElementById('menuOverlay');
+    if(!overlay) return;
+    var img = new Image();
+    img.onload = function(){ /* keep normal styling */ };
+    img.onerror = function(){ overlay.classList.add('fallback'); };
+    img.src = 'Box Background.png';
+  }catch(e){}
+})();
+</script>
+
+
+<script>
+(function(){
+  try {
+    if (typeof QUIZ_CONFIG === "undefined" || !QUIZ_CONFIG.text) return;
+    var t = QUIZ_CONFIG.text.title || "";
+    var st = QUIZ_CONFIG.text.subtitle || "";
+    var elTitle = document.querySelector(".title") || document.querySelector("h1");
+    if (elTitle && t) elTitle.textContent = t;
+    var elSub = document.querySelector(".subtitle");
+    if (elSub && st) elSub.textContent = st;
+  } catch(e) {}
+})();
+</script>
+
+<script>
+(function(){
+  try {
+    if (typeof DATA === "undefined" || !Array.isArray(DATA)) return;
+    var ANSWER_KEY = "word";
+    if (!ANSWER_KEY) return;
+    DATA = DATA.map(function(r){
+      if (!r || typeof r !== "object") return r;
+      if (typeof r.term === "undefined") r.term = r[ANSWER_KEY];
+      return r;
+    });
+  } catch(e) {}
+})();
+</script>
+
+<script>
+// =========================================================
+// Helper: hide answer inside prompt by replacing characters with underscores
+// =========================================================
+function maskAnswerInText(text, answer){
+  try{
+    text = (text===null || text===undefined) ? '' : String(text);
+    answer = (answer===null || answer===undefined) ? '' : String(answer);
+    var a = answer.trim();
+    if(!a) return text;
+    var esc = a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var re = new RegExp(esc, 'gi');
+    return text.replace(re, function(m){
+      return m.replace(/\S/g, '_');
+    });
+  }catch(e){
+    return (text===null || text===undefined) ? '' : String(text);
+  }
+}
+</script>
+</body>
+</html>
